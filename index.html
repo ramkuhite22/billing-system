@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="description" content="billing-system web app">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Water Billing System</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- Three.js from CDN -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+<body>
+    <!-- ThreeJS Canvas -->
+    <canvas id="webgl-canvas"></canvas>
+
+    <!-- Main UI Overlay -->
+    <main id="app-container">
+        <!-- Story View (Default) -->
+        <section id="story-view" class="view active">
+            <div class="glass-panel login-box" id="story-entrance-box">
+                <h2 style="font-size: 1.2rem; color: var(--primary); margin-bottom: 5px;">महाराष्ट्र जीवन प्राधिकरण</h2>
+                <h1>MJP <span>Water Billing Office</span></h1>
+                <p>Welcome to the Umred regional office.</p>
+                <button id="walk-to-counter-btn" class="btn primary-btn">Enter Office & Walk to Counter</button>
+            </div>
+            
+            <div class="glass-panel login-box" id="story-dialog-box" style="display: none;">
+                <h3 style="color: var(--primary); margin-bottom: 10px;">👤 Office Admin:</h3>
+                <p style="font-size: 1.1rem; margin-bottom: 20px;">"Namaskar! Welcome to the office. Are you here as a customer to pay a bill, or are you an office administrator?"</p>
+                <button id="story-customer-btn" class="btn outline-btn" style="margin-bottom: 10px;">I am a Customer</button>
+                <button id="story-admin-btn" class="btn outline-btn" style="border-color: var(--primary); color: var(--primary);">I am an Admin</button>
+            </div>
+        </section>
+
+        <!-- Admin Login View -->
+        <section id="login-view" class="view">
+            <div class="glass-panel login-box">
+                <h2 style="font-size: 1.2rem; color: var(--primary); margin-bottom: 5px;">Admin Login</h2>
+                <p>Please enter your administrative credentials.</p>
+                <div class="error-msg" id="login-error">Invalid credentials</div>
+                <div class="form-group">
+                    <input type="text" id="username" placeholder="Username" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" placeholder="Password">
+                </div>
+                <button id="login-btn" class="btn primary-btn" style="margin-bottom: 15px;">Login to System</button>
+                <button id="back-to-story-from-login-btn" class="btn outline-btn">Go Back</button>
+            </div>
+        </section>
+
+        <!-- Public Pay Bill View -->
+        <section id="pay-bill-view" class="view">
+            <div class="glass-panel login-box" style="max-width: 500px;">
+                <h2 style="font-size: 1.2rem; color: var(--primary); margin-bottom: 5px;">ऑनलाईन पाणी बिल भरा</h2>
+                <h1>MJP <span>e-Pay</span></h1>
+                <p>Pay your water bill online securely via Maharashtra Jeevan Pradhikaran.</p>
+                <div class="form-group">
+                    <input type="text" id="search-bill-id" placeholder="Enter your Bill ID or Client ID">
+                </div>
+                <button id="search-bill-btn" class="btn primary-btn" style="margin-bottom: 15px;">Search Bill</button>
+                <div id="pay-bill-result" style="display:none; text-align: left; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <!-- Result shown here -->
+                </div>
+                <button id="back-to-story-from-pay-btn" class="btn outline-btn">Go Back</button>
+            </div>
+        </section>
+
+        <!-- Dashboard View -->
+        <section id="dashboard-view" class="view">
+            <nav class="glass-nav">
+                <div class="logo">
+                    <span style="font-size: 0.9rem; display: block; color: var(--text-main); font-weight: 400;">महाराष्ट्र शासन</span>
+                    MJP System
+                </div>
+                <ul class="nav-links">
+                    <li><a href="#" data-target="dashboard-content" class="active">Dashboard</a></li>
+                    <li><a href="#" data-target="clients-content">Clients</a></li>
+                    <li><a href="#" data-target="bills-content">Bills</a></li>
+                    <li><a href="#" data-target="users-content">Users</a></li>
+                </ul>
+                <button id="logout-btn" class="btn outline-btn">Logout</button>
+            </nav>
+            
+            <div class="dashboard-wrapper">
+                <!-- Dashboard Content -->
+                <div id="dashboard-content" class="tab-content active">
+                    <div class="header-section">
+                        <h2>System Overview</h2>
+                        <p>Welcome, <span id="current-user-name">User</span></p>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="glass-card stat-card">
+                            <h3>Total Clients</h3>
+                            <div class="stat-value" id="stat-clients">0</div>
+                        </div>
+                        <div class="glass-card stat-card">
+                            <h3>Total Bills</h3>
+                            <div class="stat-value" id="stat-bills">0</div>
+                        </div>
+                        <div class="glass-card stat-card">
+                            <h3>Total Revenue</h3>
+                            <div class="stat-value" id="stat-revenue">₹0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Clients Content -->
+                <div id="clients-content" class="tab-content">
+                    <div class="header-section flex-between">
+                        <div>
+                            <h2>Client Management</h2>
+                            <p>Manage water billing clients.</p>
+                        </div>
+                        <button class="btn primary-btn" id="add-client-btn">Add Client</button>
+                    </div>
+                    <div class="glass-card table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Address</th>
+                                    <th>Contact</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clients-table-body">
+                                <!-- Data populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Bills Content -->
+                <div id="bills-content" class="tab-content">
+                    <div class="header-section flex-between">
+                        <div>
+                            <h2>Billing Management</h2>
+                            <p>Generate and manage water bills.</p>
+                        </div>
+                        <button class="btn primary-btn" id="add-bill-btn">Generate Bill</button>
+                    </div>
+                    <div class="glass-card table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Bill ID</th>
+                                    <th>Client Name</th>
+                                    <th>Previous Reading</th>
+                                    <th>Present Reading</th>
+                                    <th>Total Price</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bills-table-body">
+                                <!-- Data populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Users Content -->
+                <div id="users-content" class="tab-content">
+                    <div class="header-section flex-between">
+                        <div>
+                            <h2>User Management</h2>
+                            <p>Manage system access.</p>
+                        </div>
+                        <button class="btn primary-btn" id="add-user-btn">Add User</button>
+                    </div>
+                    <div class="glass-card table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Name</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body">
+                                <!-- Data populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Modals -->
+        <div id="modal-overlay" class="modal-overlay"></div>
+        <div id="client-modal" class="glass-modal">
+            <h3 id="client-modal-title">Add New Client</h3>
+            <div class="form-group">
+                <input type="text" id="client-fname" placeholder="First Name">
+            </div>
+            <div class="form-group">
+                <input type="text" id="client-lname" placeholder="Last Name">
+            </div>
+            <div class="form-group">
+                <input type="text" id="client-mi" placeholder="Middle Initial">
+            </div>
+            <div class="form-group">
+                <input type="text" id="client-address" placeholder="Address">
+            </div>
+            <div class="form-group">
+                <input type="text" id="client-contact" placeholder="Contact Number">
+            </div>
+            <div class="modal-actions">
+                <button class="btn outline-btn close-modal">Cancel</button>
+                <button class="btn primary-btn" id="save-client-btn">Save Client</button>
+            </div>
+        </div>
+
+        <div id="bill-modal" class="glass-modal">
+            <h3 id="bill-modal-title">Generate Bill</h3>
+            <div class="form-group">
+                <select id="bill-client">
+                    <!-- Populated by JS -->
+                </select>
+            </div>
+            <div class="form-group">
+                <input type="number" id="bill-prev" placeholder="Previous Reading (cubic meters)">
+            </div>
+            <div class="form-group">
+                <input type="number" id="bill-pres" placeholder="Present Reading (cubic meters)">
+            </div>
+            <div class="modal-actions">
+                <button class="btn outline-btn close-modal">Cancel</button>
+                <button class="btn primary-btn" id="save-bill-btn">Generate</button>
+            </div>
+        </div>
+
+        <div id="user-modal" class="glass-modal">
+            <h3 id="user-modal-title">Add/Edit User</h3>
+            <input type="hidden" id="user-id">
+            <div class="form-group">
+                <input type="text" id="user-name" placeholder="Full Name">
+            </div>
+            <div class="form-group">
+                <input type="text" id="user-username" placeholder="Username">
+            </div>
+            <div class="form-group">
+                <input type="password" id="user-password" placeholder="Password">
+            </div>
+            <div class="modal-actions">
+                <button class="btn outline-btn close-modal">Cancel</button>
+                <button class="btn primary-btn" id="save-user-btn">Save User</button>
+            </div>
+        </div>
+
+        <div id="invoice-modal" class="glass-modal">
+            <h3>Bill Invoice</h3>
+            <div id="invoice-content" style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; margin-bottom:20px; text-align: left; font-family: monospace;">
+                <!-- Filled by JS -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn outline-btn close-modal">Close</button>
+                <button class="btn primary-btn" onclick="window.print()">Print Invoice</button>
+            </div>
+        </div>
+    </main>
+
+    <script defer src="data.js"></script>
+    <script defer src="app.js"></script>
+</body>
+</html>
